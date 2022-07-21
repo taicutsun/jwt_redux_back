@@ -1,5 +1,7 @@
 require('dotenv').config();
 
+const { Sequelize } = require('sequelize');
+
 const express = require('express');
 app = express();
 const jwt = require('jsonwebtoken');
@@ -7,6 +9,43 @@ const path = require('path');
 const axios = require('axios').default;
 const cors = require('cors');
 
+//for DB
+const sequelize = new Sequelize('postgres', 'postgres', 'grisha2014', {
+  host: 'localhost',
+  dialect:'postgres',
+  port: "5432",
+  define: {
+      timestamps: false
+    }
+});
+
+let users;
+const User = sequelize.define("user", {
+id: {
+  type: Sequelize.INTEGER,
+  autoIncrement: true,
+  primaryKey: true,
+  allowNull: false
+},
+username: {
+  type: Sequelize.STRING,
+  allowNull: false
+},
+password: {
+  type: Sequelize.STRING,
+  allowNull: false
+}
+});
+
+function updateUsers(){
+User.findAll({raw:true}).then((getusers)=>{
+  users = getusers;
+  console.log(users);
+}).catch(err=>console.log('err inn find all'));
+}
+
+User.drop().then((res) => {console.log(res);} );
+//for DB
 
 app.use(
   cors({
@@ -17,26 +56,35 @@ app.use(
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }))
-//переменые для хранение хэдэров карэнтюзера и токона(в идиале переделать)
-let user;
+//переменые для хранение хэдэров карэнтюзера и токона
 let refreshTokens = [];
-//переменые для хранение хэдэров карэнтюзера и токона(в идиале переделать)
-let users = [];
+//переменые для хранение хэдэров карэнтюзера и токона
+let  loginuser;
 
 //create
 
 app.post('/create',(req,res)=>{
 const { username, password } = req.body;
-users.push({username:username,password:password});console.log(users);
+// conect and add to DB
+sequelize.sync({force:false}).then(result=>{
+  console.log('result');
+  User.create({
+    username: username,
+    password: password
+  })
+  .then(()=>{ console.log('done creating')})
+  .then(()=>{updateUsers()})
+  .catch(err=>console.log('err in'));
+})
+.catch(err=> console.log('err out'));
+// conect and add to DB
 
-res.send("new user logged");
+res.json({mass:"new user logged",status:true});
 });
 //create
 
 //обработка аксестокена
 app.post('/posts',authenticateToken,(req,res)=>{
-//  res.json(posts.filter(post=>post.username == req.user.username));
-//console.log(req.headers);
 res.json({success: true});
 });
 //обработка аксестокена
@@ -45,11 +93,11 @@ res.json({success: true});
 app.post('/login',(req,res)=>{
 const { username, password } = req.body;
 if(username==='' || password===''){res.json({mass:'Username or password incorrect',status:false});}
-user = users.find(u => { return u.username === username && u.password === password });
+loginuser = users.find(u => { return u.username === username && u.password === password });
 
- if (user) {
-    const accessToken = generateAccessToken(user);
-    const refreshToken = jwt.sign({ username: user.username }, process.env.REFRESH_TOKEN_SECRET);
+ if (loginuser) {
+    const accessToken = generateAccessToken(loginuser);
+    const refreshToken = jwt.sign({ username: loginuser.username }, process.env.REFRESH_TOKEN_SECRET);
     refreshTokens.push(refreshToken);
 
    res.json({accessToken:accessToken,refreshToken:refreshToken,status:true});   
@@ -66,14 +114,14 @@ app.post('/token',(req,res)=>{
 
 jwt.verify(refreshToken,process.env.REFRESH_TOKEN_SECRET,(err)=>{
     if(err)return res.sendStatus(403);
-    const accessToken = generateAccessToken(user);
-    //console.log('creating new atoken');
+    const accessToken = generateAccessToken(loginuser);
+   
     res.json({accessToken:accessToken});
         })
  });
 
 function authenticateToken(req,res,next){ 
-const authHeader = req.headers.authorization;//console.log(`auth=${authHeader}`);
+const authHeader = req.headers.authorization;
 const token = authHeader && authHeader.split(' ')[1];
 
 if(token===undefined){
@@ -82,7 +130,7 @@ if(token===undefined){
 
 jwt.verify(token,process.env.ACCSESS_TOKEN_SECRET,(err)=>{
     if(err)return res.sendStatus(403)
-    req.user=user;//console.log(`user=${req.user}`);
+    req.user=loginuser;
     next();
 })
 }
