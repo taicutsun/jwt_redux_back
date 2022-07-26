@@ -17,8 +17,21 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "devstart": "nodemon server.js"
+    "devstart": "nodemon server.js",
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "*.{js}":[
+      "nodu_modules/.bin/eslint --max-warnings=0",
+      "prettier --write",
+      "git add"
+    ]
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.3",
+    "prettier": "2.7.1"
+  }
 }
