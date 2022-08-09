@@ -8,7 +8,7 @@ const path = require("path");
 const axios = require("axios").default;
 const cors = require("cors");
 
-const { authenticateToken, generateAccessToken, updateUsers } = require("./helpFunc.js");
+const { authenticateToken, generateAccessToken } = require("./helpFunc.js");
 
 //for DB
 const sequelize = new Sequelize("postgres", "postgres", "grisha2014", {
@@ -48,10 +48,23 @@ sequelize
 //conect to DB
 
 // TODO: move it to scripts for production usage
-User.drop().then((res) => {
-  console.log(res);
-});
+/*User.drop().then((res) => {
+  console.log('table dropped');
+});*/
+
+//TODO: somehow if have time try to put in other file (error ab undefind User)
+function updateUsers() {
+  User.findAll({ raw: true })
+    .then((getusers) => {
+      users = getusers;
+      console.log(users);
+    })
+    .catch((err) => console.log("err inn find all"));
+}
+
 //for DB
+
+
 
 app.use(
   cors({
@@ -74,13 +87,10 @@ app.post("/create", (req, res) => {
     username: username,
     password: password,
   })
-    .then(() => {
-      console.log("done creating");
-    })
-    .then(() => {
+    .then((res) => {
       updateUsers();
     })
-    .catch((err) => console.log("err in"));
+    .catch((err) => console.log(err));
 
   //add user to DB
 
@@ -90,6 +100,7 @@ app.post("/create", (req, res) => {
 
 //login and create token
 app.post("/login", (req, res) => {
+  updateUsers();
   const { username, password } = req.body;
   if (username === "" || password === "") {
     res.json({ mass: "Username or password incorrect", status: false });
@@ -138,3 +149,5 @@ app.post("/token", (req, res) => {
 });
 
 app.listen(3001);
+
+module.exports = { loginuser };

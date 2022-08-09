@@ -1,6 +1,5 @@
-const { Sequelize } = require("sequelize");
+const { loginuser } = require("./server");
 const jwt = require("jsonwebtoken");
-
 
 //for tokens
 function authenticateToken(req, res, next) {
@@ -27,20 +26,7 @@ function generateAccessToken(user) {
 }
 //for tokens
 
-
-//for db
-function updateUsers() {
-    User.findAll({ raw: true })
-        .then((getusers) => {
-            users = getusers;
-            console.log(users);
-        })
-        .catch((err) => console.log("err inn find all"));
-}
-//for db
-
 module.exports = {
-    authenticateToken, 
-    generateAccessToken, 
-    updateUsers
+    authenticateToken,
+    generateAccessToken
 }
